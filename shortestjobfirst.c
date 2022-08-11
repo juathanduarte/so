@@ -17,24 +17,20 @@ typedef struct processadores {
 Processador processadores[2];
 
 int main(){
-    int i;
+    loadTaks(processos, 9);
 
-    loadTasks(processos, 9);
+    printf("\n\n");
 
     shortestJobFirst(processos, 9);
 
-    for (i=0; i < 9; i++){
-        if(i%2==0){
-            processadores[0].processos = processos[i];
-            printf("%s %d\n", processadores[0].processos.nome, processadores[0].processos.tempo);
-        } else {
-            processadores[1].processos = processos[i];
-        }
+    for(int i = 0; i < 9; i++){
+        printf("%s %d\n", processos[i].nome, processos[i].tempo);
     }
+
     return 0;
 }
 
-void loadTasks(Processo processos[], int n){
+void loadTaks(Processo processos[], int n){
     int i;
 
     FILE * arq = NULL;    
@@ -51,8 +47,7 @@ void loadTasks(Processo processos[], int n){
     }
 
     fclose(arq);
-
-}
+    }
 
 void shortestJobFirst(Processo *p, int n){
     int i, j;
@@ -64,6 +59,29 @@ void shortestJobFirst(Processo *p, int n){
                 p[j] = p[j + 1];
                 p[j + 1] = aux;
             }
+        }
+    }
+}
+
+void organizeProcessors(Processador *p, int n){
+    int counterOne = 0, counterTwo = 0;
+
+    Processo aux;
+
+    for (int i = 0; i < n; i++){
+        if (p[i].processos.tempo < counterOne){
+            aux = p[i];
+            p[i] = p[counterOne];
+            p[counterOne] = aux;
+            counterOne++;
+        }
+        else if (p[i].processos.tempo < counterTwo){
+            aux = p[i];
+            p[i] = p[counterTwo];
+            p[counterTwo] = aux;
+            counterTwo++;
+        } else {
+            //TO-DO: ajeitar essa merda
         }
     }
 }
