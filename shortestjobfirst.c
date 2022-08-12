@@ -19,13 +19,9 @@ Processador processadores[2];
 int main(){
     loadTaks(processos, 9);
 
-    printf("\n\n");
-
     shortestJobFirst(processos, 9);
 
-    for(int i = 0; i < 9; i++){
-        printf("%s %d\n", processos[i].nome, processos[i].tempo);
-    }
+    organizeProcessors(processos, processadores, 9);
 
     return 0;
 }
@@ -40,14 +36,17 @@ void loadTaks(Processo processos[], int n){
         exit(1);
     }
 
+    printf("Lista não ordenada:\n");
+
     for(i=0; i<n; i++){
         fscanf(arq, "%s", &processos[i].nome);
         fscanf(arq, "%d", &processos[i].tempo);
+
         printf("%s %d\n", processos[i].nome, processos[i].tempo);
     }
 
     fclose(arq);
-    }
+}
 
 void shortestJobFirst(Processo *p, int n){
     int i, j;
@@ -61,27 +60,43 @@ void shortestJobFirst(Processo *p, int n){
             }
         }
     }
+
+    printf("\nLista ordenada:\n");
+    for(i=0; i<n; i++){
+        printf("%s %d\n", p[i].nome, p[i].tempo);
+    }
 }
 
-void organizeProcessors(Processador *p, int n){
+void organizeProcessors(Processo processos[], Processador processadores[],int n){
     int counterOne = 0, counterTwo = 0;
+    int initialMsOne = 0, initialMsTwo = 0;
 
-    Processo aux;
+    Processo aux, aux1;
 
+    printf("\n\n");
     for (int i = 0; i < n; i++){
-        if (p[i].processos.tempo < counterOne){
-            aux = p[i];
-            p[i] = p[counterOne];
-            p[counterOne] = aux;
-            counterOne++;
+        if (counterOne == 0){
+            initialMsOne = counterOne;
+            counterOne = processos[i].tempo;
+        } else if (counterTwo == 0){
+            initialMsTwo = counterTwo;
+            counterTwo = processos[i].tempo;
         }
-        else if (p[i].processos.tempo < counterTwo){
-            aux = p[i];
-            p[i] = p[counterTwo];
-            p[counterTwo] = aux;
-            counterTwo++;
-        } else {
-            //TO-DO: ajeitar essa merda
-        }
+
+        // if (counterOne < counterTwo){
+            initialMsOne = counterOne;
+            counterOne += processos[i].tempo;
+            aux = processos[i + 1];
+            processos[i] = processos[i + 2];
+            processos[i + 2] = aux;
+
+            // printf("%d %d\n", initialMsOne, processos[i]);
+        // } 
+        // else {
+        //     counterTwo += processos[i + 1].tempo;
+        //     aux1 = processos[i + 1];
+        //     processos[i] = processos[i + 2];
+        //     processos[i + 2] = aux1;
+        // }
     }
 }
