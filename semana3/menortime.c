@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
 
     loadTasks(processos, QNT_PROCESSES, fileName);
     biggestJobFirst(processos, QNT_PROCESSES);
-    organizeProcessors(qntProcessors, processadores, QNT_PROCESSES);
+    organizeProcesses(qntProcessors, processadores);
 
     return 0;
 }
@@ -74,11 +74,13 @@ void biggestJobFirst(Processo *p, int n){
     }
 }
 
-void organizeProcesses(int qntProcessors, int n, Processador processadores[], Processo processos[]){
+void organizeProcesses(int qntProcessors, Processador processadores[]){
     char nextProcess[qntProcessors];
     char minTime[qntProcessors];
 
-    int i = 0;
+    for (int i = 0; i < qntProcessors; i++){
+        minTime[i] = 0;
+    }
 
     FILE * arq = NULL;
 
@@ -87,16 +89,26 @@ void organizeProcesses(int qntProcessors, int n, Processador processadores[], Pr
         exit(1);
     }
 
-    while (i <= QNT_PROCESSES){
-        for(int j = 0; j<= qntProcessors; j++){
-            processadores[j].processos[nextProcess[j]] = processos[i];
-            printf("%s %d\n", processadores[j].processos[nextProcess[j]].name, processadores[j].processos[nextProcess[j]].time);
-        i++;
+    for(int i = 0; i<= qntProcessors; i++){
+        for(int j = 0; j<= QNT_PROCESSES;j++){
+            if((minTime[i] == 0) && (i <= 5)){
+                processadores[j].processos[i] = processos[i];
+            }
+        }
+        }
+        if (minTime[i] == 0) {
+            processadores[i].processos[i] = processos[i];
+        }
+
+        if (minTime[i + 1] < minTime[i]) {
+            nextProcess[i] = processadores[i].processos[i].name;
+            minTime[i] = processadores[i].processos[i].time;
         }
     }
 
-
-    // printf("\n\n");
+        // processadores[j].processos[nextProcess[j]] = processos[i];
+        // printf("\n\n%s;%d\n", processos[j].name, processos[j].time);
+        // printf("%s----%d\n", processadores[j].processos[nextProcess[j]].name, processadores[j].processos[nextProcess[j]].time);
 
     // fprintf(arq, "Processador 1:\n");
 
@@ -114,5 +126,5 @@ void organizeProcesses(int qntProcessors, int n, Processador processadores[], Pr
     //     time += processadores[1].processos[i].tempo;
     // }
     
-    fclose(arq);
+    // fclose(arq);
 }
