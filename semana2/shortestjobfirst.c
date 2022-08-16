@@ -10,7 +10,6 @@ typedef struct processos{
 Processo processos[9];
 
 typedef struct processadores {
-    int id;
     Processo processos[5];
 } Processador;
 
