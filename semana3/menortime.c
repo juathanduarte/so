@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define COUNTER_LETTERS_IN_NAME 5
 #define QNT_PROCESSES 45
@@ -12,11 +13,14 @@ typedef struct processos {
 Processo processos[QNT_PROCESSES];
 
 typedef struct processadores {
-    Processo processos[QNT_PROCESSES]
+    Processo processos[QNT_PROCESSES];
+    int qnt_processos;
 } Processador;
 
-void loadTaks(Processo processos[], int n, char fileName[]);
+void loadTasks(Processo processos[], int n, char fileName[]);
 void biggestJobFirst(Processo *p, int n);
+void organizeProcesses(int qntProcessors, Processador **processadores);
+void printResult(Processador processadores[], int qntProcessors);
 
 int main(int argc, char *argv[]){
     char fileName[12];
@@ -26,9 +30,14 @@ int main(int argc, char *argv[]){
 
     Processador processadores[qntProcessors];
 
+    for (int i = 0;i< qntProcessors; i++){
+        processadores[i].qnt_processos = 0;
+    }
+
     loadTasks(processos, QNT_PROCESSES, fileName);
     biggestJobFirst(processos, QNT_PROCESSES);
-    organizeProcesses(qntProcessors, processadores);
+    organizeProcesses(qntProcessors, &processadores);
+    printResult(processadores, qntProcessors);
 
     return 0;
 }
@@ -43,13 +52,9 @@ void loadTasks(Processo processos[], int n, char fileName[]){
         exit(1);
     }
 
-    printf("Lista não ordenada:\n");
-
     for(i=0; i<n; i++){
-        fscanf(arq, "%s", &processos[i].name);
+        fscanf(arq, "%s", processos[i].name);
         fscanf(arq, "%d", &processos[i].time);
-
-        printf("%s %d\n", processos[i].name, processos[i].time);
     }
 
     fclose(arq);
@@ -67,64 +72,38 @@ void biggestJobFirst(Processo *p, int n){
             }
         }
     }
+}
 
-    printf("\nLista ordenada:\n");
-    for(i=0; i<n; i++){
-        printf("%s %d\n", p[i].name, p[i].time);
+void organizeProcesses(int qntProcessors, Processador **processadores){
+    int processadorAtribuir = 0;
+
+    for(int i =0; i < QNT_PROCESSES; i++){
+        processadorAtribuir = i % qntProcessors;
+        // *(processadores.processos[processadorAtribuir].qnt_processos[i];
+
+        (*processadores)[processadorAtribuir].processos[i] = processos[i];
+        (*processadores)[processadorAtribuir].qnt_processos++;
     }
 }
 
-void organizeProcesses(int qntProcessors, Processador processadores[]){
-    char nextProcess[qntProcessors];
-    char minTime[qntProcessors];
-
-    for (int i = 0; i < qntProcessors; i++){
-        minTime[i] = 0;
-    }
-
+void printResult(Processador processadores[], int qntProcessors){
     FILE * arq = NULL;
+
+    int terminoProcessoAnterior = 0;
 
     if((arq = fopen("resultado.txt", "w")) == NULL){
         printf("Não foi possível abrir o arquivo\n\n");
         exit(1);
     }
 
-    for(int i = 0; i<= qntProcessors; i++){
-        for(int j = 0; j<= QNT_PROCESSES;j++){
-            if((minTime[i] == 0) && (i <= 5)){
-                processadores[j].processos[i] = processos[i];
-            }
-        }
-        }
-        if (minTime[i] == 0) {
-            processadores[i].processos[i] = processos[i];
+    for(int i = 0; i < qntProcessors; i++){
+        terminoProcessoAnterior = 0;
+        fprintf(arq, "Processador_%d\n", i + 1);
+
+        for(int j = 0; j < processadores[i].qnt_processos; j++){
+            fprintf(arq, "%s;%d,%d\n", processadores[i].processos[j].name, terminoProcessoAnterior, terminoProcessoAnterior + processadores[i].processos[j].time);
+            terminoProcessoAnterior += processadores[i].processos[j].time;
         }
 
-        if (minTime[i + 1] < minTime[i]) {
-            nextProcess[i] = processadores[i].processos[i].name;
-            minTime[i] = processadores[i].processos[i].time;
-        }
     }
-
-        // processadores[j].processos[nextProcess[j]] = processos[i];
-        // printf("\n\n%s;%d\n", processos[j].name, processos[j].time);
-        // printf("%s----%d\n", processadores[j].processos[nextProcess[j]].name, processadores[j].processos[nextProcess[j]].time);
-
-    // fprintf(arq, "Processador 1:\n");
-
-    // for (int i = 0; i < nextProcessOne; i++){
-    //     fprintf(arq, "%s;%d;%d\n", processadores[0].processos[i].nome, time, time + processadores[0].processos[i].tempo);
-    //     time += processadores[0].processos[i].tempo;
-    // }
-
-    // time = 0;
-
-    // fprintf(arq, "\nProcessador 2:\n");
-
-    // for (int i = 0; i < nextProcessTwo; i++){
-    //     fprintf(arq, "%s;%d;%d\n", processadores[1].processos[i].nome, time, time + processadores[1].processos[i].tempo);
-    //     time += processadores[1].processos[i].tempo;
-    // }
-    
-    // fclose(arq);
 }
