@@ -19,7 +19,7 @@ typedef struct processadores {
 
 void loadTasks(Processo processos[], int n, char fileName[]);
 void biggestJobFirst(Processo *p, int n);
-void organizeProcesses(int qntProcessors, Processador **processadores);
+void organizeProcesses(int qntProcessors, Processador processadores[]);
 void printResult(Processador processadores[], int qntProcessors);
 
 int main(int argc, char *argv[]){
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
 
     loadTasks(processos, QNT_PROCESSES, fileName);
     biggestJobFirst(processos, QNT_PROCESSES);
-    organizeProcesses(qntProcessors, &processadores);
+    organizeProcesses(qntProcessors, processadores);
     printResult(processadores, qntProcessors);
 
     return 0;
@@ -74,15 +74,14 @@ void biggestJobFirst(Processo *p, int n){
     }
 }
 
-void organizeProcesses(int qntProcessors, Processador **processadores){
+void organizeProcesses(int qntProcessors, Processador processadores[]){
     int processadorAtribuir = 0;
 
     for(int i =0; i < QNT_PROCESSES; i++){
         processadorAtribuir = i % qntProcessors;
-        // *(processadores.processos[processadorAtribuir].qnt_processos[i];
 
-        (*processadores)[processadorAtribuir].processos[i] = processos[i];
-        (*processadores)[processadorAtribuir].qnt_processos++;
+        processadores[processadorAtribuir].processos[processadores[processadorAtribuir].qnt_processos] = processos[i];
+        processadores[processadorAtribuir].qnt_processos++;
     }
 }
 
@@ -104,6 +103,5 @@ void printResult(Processador processadores[], int qntProcessors){
             fprintf(arq, "%s;%d,%d\n", processadores[i].processos[j].name, terminoProcessoAnterior, terminoProcessoAnterior + processadores[i].processos[j].time);
             terminoProcessoAnterior += processadores[i].processos[j].time;
         }
-
     }
 }
