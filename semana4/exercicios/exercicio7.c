@@ -1,7 +1,3 @@
-// Faça um programa que programa que gere números inteiros e aleatórios para uma matriz
-//20x20. Faça uma versão monothread, uma com 2 thread e outra com 4 thread. Qual possui o menor
-//tempo de execução?
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
