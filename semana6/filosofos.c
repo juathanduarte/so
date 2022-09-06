@@ -1,69 +1,111 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
-#include <pthread.h>
-#include <semaphore.h>
+#include <unistd.h>
 
+#define QUANT      (5)                     //Quantidade de filósofos
+#define ESQUERDA   (id_filosofo + QUANT - 1) % QUANT   //Id do filósofo a esquerda do id
+#define DIREITA   (id_filosofo + 1) % QUANT              //Id do filósofo a direita do id
+#define PENSANDO   (0)                     //Id para estado pensado
+#define FAMINTO   (1)                                //Id para estado de fome
+#define COMENDO   (2)                      //Id para estado comendo
 
-#define N 5
-#define LEFT (i+N-1)%N
-#define RIGHT (i+1)%N
+int estado [QUANT];                        //Estado dos filósofos
+pthread_mutex_t mutex;                     //Região crítica
+pthread_mutex_t mux_filo [QUANT];                    //Mutex por filósofo
+pthread_t jantar[QUANT];                          //Todos os filósofos
 
-#define THINKING 0
-#define HUNGRY 1
-#define EATING 2
+void * filosofo ( void * param );
+void pegar_hashi ( int id_filosofo );
+void devolver_hashi ( int id_filosofo );
+void intencao ( int id_filosofo );
+void comer ( int id_filosofo );
+void pensar ( int id_filosofo );
 
-int state[N];
+void * filosofo ( void * vparam ){
+  int * id = (int *) (vparam);   //Repassa o id do filósofo
 
-typedef int semaphore;
+  printf("Filosofo %d foi criado com sucesso\n", *(id) );
 
-semaphore mutex = 1;
-semaphore philho[N];
-
-void test(int i) {
-  if (state[i] == HUNGRY && state[LEFT] != EATING && state[RIGHT] != EATING) {
-    state[i] = EATING;
-    sem_post(&philho[i]);
+  while ( 1 ){
+    pensar( *(id) );         //Aguarda o filósofo pensar
+    pegar_hashi( *(id) );      //Filósofo pega os hashis
+    comer( *(id) );         //Aguarda comer
+    devolver_hashi( *(id) );   //Devolver os hashis pra mesa
   }
+
+  pthread_exit( (void*) 0 );      //Legado do retorno
 }
 
-void take_forks(int i) {
-  sem_wait(&mutex);
-  state[i] = HUNGRY;
-  test(i);
-  sem_post(&mutex);
-  sem_wait(&philho[i]);
+void pegar_hashi ( int id_filosofo ){
+  pthread_mutex_lock( &(mutex) );         //Entra na regiсo crítica7
+  printf("Filosofo %d esta faminto\n", id_filosofo);
+  estado[ id_filosofo ] = FAMINTO;            //Altera o estado do filósofo
+  intencao( id_filosofo );               //Intenção de pegar os hashis
+  pthread_mutex_unlock( &(mutex) );         //Sai na região crítica
+  pthread_mutex_lock( &(mux_filo[id_filosofo]) );   //Bloqueia os hashis
 }
 
-void put_forks(int i) {
-  sem_wait(&mutex);
-  state[i] = THINKING;
-  test(LEFT);
-  test(RIGHT);
-  sem_post(&mutex);
+void devolver_hashi ( int id_filosofo ){
+  pthread_mutex_lock ( &(mutex) );   //Entra na regiсo crítica
+  printf("Filosofo %d esta pensando\n", id_filosofo);
+  estado[ id_filosofo ] = PENSANDO;   //Terminou de comer
+  intencao( ESQUERDA );         //Vê se o vizinho da esquerda pode comer agora
+  intencao( DIREITA );            //Vê se o vizinho da direita pode comer agora
+  pthread_mutex_unlock ( &(mutex) );   //Sai da regiсo crítica
 }
 
-void *philosopher(void *arg) {
-  int i = (int)arg;
-  while (1) {
-    printf("Philosopher %d is thinking\n", i);
-    take_forks(i);
-    printf("Philosopher %d is eating\n", i);
-    put_forks(i);
+void intencao ( int id_filosofo ){
+   printf("Filosofo %d esta com intencao de comer\n", id_filosofo);
+   if( (estado[id_filosofo] == FAMINTO) &&           //Se o filósofo está come fome
+      (estado[ESQUERDA] != COMENDO) &&     //Se o vizinho da esquerda não está comendo
+      (estado[DIREITA] != COMENDO ) ){      //Se o vizinho da direita nсo está comendo
+      printf("Filosofo %d ganhou a vez de comer\n", id_filosofo);
+      estado[ id_filosofo ] = COMENDO;          //Filósofo ganho a vez de comer
+      pthread_mutex_unlock( &(mux_filo[id_filosofo]) );   //Libera os hashis
+   }
+}
+
+void pensar ( int id_filosofo ){
+  int r = (rand() % 10 + 1);
+
+  printf("Filosofo %d pensa por %d segundos\n", id_filosofo, r );
+  sleep( r );   //Gasta um tempo em segundos
+}
+
+void comer ( int id_filosofo ){
+  int r = (rand() % 10 + 1);
+
+  printf("Filosofo %d come por %d segundos\n", id_filosofo, r);
+  sleep( r );   //Gasta um tempo em segundos
+}
+
+int main ( void ){
+  int cont;   //Contador auxiliar
+  int status;   //Criação da thread
+
+  //Inicia os mutexes
+  pthread_mutex_init( &(mutex), NULL);
+  for( cont = 0 ; cont < QUANT ; cont++ ){
+    pthread_mutex_init( &(mux_filo[cont]), NULL );
+  }
+
+  //Inicia threads (filósofos)
+  for( cont = 0 ; cont < QUANT ; cont++ ){
+    //verifica se ocorreu erro
+    status = pthread_create( &(jantar[cont]), NULL, filosofo, (void *) &(cont) );
+    if ( status ){
+        printf("Erro criando thread %d, retornou codigo %d\n", cont, status );
+        return EXIT_FAILURE;
     }
-}
+  }
 
-int main() {
-  int i;
-  pthread_t tid[N];
-  for (i = 0; i < N; i++) {
-    sem_init(&philho[i], 0, 0);
+  //Destroi antes de sair
+  pthread_mutex_destroy( &(mutex) );
+  for( cont = 0 ; cont < QUANT ; cont++ ){
+    pthread_mutex_destroy( &(mux_filo[cont]) );
   }
-  for (i = 0; i < N; i++) {
-    pthread_create(&tid[i], NULL, philosopher, (void *)i);
-  }
-  for (i = 0; i < N; i++) {
-    pthread_join(tid[i], NULL);
-  }
-  return 0;
+  pthread_exit( NULL );
+
+  return EXIT_SUCCESS;
 }
