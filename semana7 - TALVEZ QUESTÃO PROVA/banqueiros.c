@@ -28,6 +28,7 @@ int main(){
 
     int recursosAlocados[processos][recursos];
 
+    printf("Recursos alocados: \n");
     for (int i=0; i < processos; i++){
         for (int j=0; j < recursos; j++){
             recursosAlocados[i][j] = rand() % 10;
@@ -42,6 +43,7 @@ int main(){
     int recursosDisponiveis[recursos];
     int recursosExistentes[recursos];
 
+    printf("Recursos existentes: \n");
     for (int i=0; i < recursos; i++){
         recursosExistentes[i] = rand() % 10; // Gere aleatoriamente a quantidade total de cada recurso. Ex.: 0 a 9.
         recursosDisponiveis[i] = recursosExistentes[i];
@@ -52,20 +54,22 @@ int main(){
 
     int recursosNecessarios[processos][recursos];
 
+    printf("Recursos necessarios: \n");
     for (int i=0; i < processos; i++){
         for (int j=0; j < recursos; j++){
-            recursosNecessarios[i][j] = rand() % (recursosExistentes[j] + 1);
+            recursosNecessarios[i][j] = rand() % (recursosExistentes[j]);
             printf("%d ", recursosNecessarios[i][j]);
         }
         printf("\n");
     }
 
-    for (int i=0; i < recursos; i++){
-        printf("%d ", recursosDisponiveis[i]);
-    }
+    while ()
+ 
+    // printf("Recursos disponiveis: \n");
+    // for (int i=0; i < recursos; i++){
+    //     printf("%d ", recursosDisponiveis[i]);
+    // }
 
-    printf("\n");
-
-    int recursosAlocadosTemp[processos][recursos];
+    // printf("\n");
     
 }
