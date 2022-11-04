@@ -22,6 +22,8 @@ typedef struct Banco {
 
 banco instFinanceira;
 int pessoasAtendidas;
+int *sequenciaSegura;
+int contadorSequenciaSegura = 0;
 pthread_mutex_t mutexBanco = PTHREAD_MUTEX_INITIALIZER;
 
 void pedirFinanciamento();
@@ -81,6 +83,23 @@ int main() {
       exit(-1);
     }
   }
+
+  for (int i = 0; i < qtdPessoas; i++) {
+    pthread_join(financiamentos[i], NULL);
+  }
+
+  imprimeSequenciaSegura();
+}
+
+void imprimeSequenciaSegura() {
+  printf("\nSequencia segura:\n");
+  for (int i = 0; i < contadorSequenciaSegura; i++) {
+    printf("Pessoa %d", sequenciaSegura[i]);
+    if (i != contadorSequenciaSegura - 1) {
+      printf("-->");
+    }
+  }
+  printf("\n");
 }
 
 void pedirFinanciamento() {
@@ -91,6 +110,8 @@ void pedirFinanciamento() {
   devolverDinheiro(&pessoas[i]);
   situacaoBanco();
   pessoasAtendidas++;
+  sequenciaSegura[contadorSequenciaSegura] = pessoas[i].id;
+  contadorSequenciaSegura++;
 }
 
 void situacaoBanco() {
