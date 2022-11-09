@@ -32,8 +32,9 @@ void devolverDinheiro(financiamento *pessoa);
 void emprestimoBanco(financiamento *pessoa);
 void verificaPessoasAtendidas();
 
+int qtdPessoas;
+
 int main() {
-  int qtdPessoas;
   srand(time(NULL));
 
   do {
@@ -41,13 +42,14 @@ int main() {
     scanf("%d", &qtdPessoas);
   } while (qtdPessoas < 1);
 
+  financiamento pessoas[qtdPessoas];
+
   instFinanceira.especie = (int)(500001 + rand() % 500000);
   instFinanceira.subsidio = (int)((100001 + rand() % 100000));
   instFinanceira.taxas = (int)(30001 + rand() % 30000);
 
   printf("\nBanco -----\n-> Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", instFinanceira.especie, instFinanceira.taxas, instFinanceira.subsidio);
 
-  financiamento pessoas[qtdPessoas];
   pthread_t financiamentos[qtdPessoas];
 
   for (int i = 0; i < qtdPessoas; i++) {
@@ -73,7 +75,7 @@ int main() {
 
     pessoas[i].financiado = 0;
 
-    printf("\nPessoa %d -----\n-> Total do imovel: R$ %.2f\n->Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", pessoas[i].id, pessoas[i].totalImovel, pessoas[i].especie, pessoas[i].taxas, pessoas[i].subsidio);
+    printf("\nPessoa %d -----\n->Total do imovel: R$ %.2f\n->Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", pessoas[i].id, pessoas[i].totalImovel, pessoas[i].especie, pessoas[i].taxas, pessoas[i].subsidio);
   }
 
   for (int i = 0; i < qtdPessoas; i++) {
@@ -102,15 +104,15 @@ void imprimeSequenciaSegura() {
   printf("\n");
 }
 
-void pedirFinanciamento() {
-  emprestimoBanco(&pessoas[i]);
+void pedirFinanciamento(financiamento *pessoa) {
+  emprestimoBanco(pessoa);
   situacaoBanco();
-  printf("\nPessoa %d esta pagando as parcelas...\n", pessoas[i].id);
+  printf("\nPessoa %d esta pagando as parcelas...\n", pessoa->id);
   sleep(5 + rand() % 5);
-  devolverDinheiro(&pessoas[i]);
+  devolverDinheiro(pessoa);
   situacaoBanco();
   pessoasAtendidas++;
-  sequenciaSegura[contadorSequenciaSegura] = pessoas[i].id;
+  sequenciaSegura[contadorSequenciaSegura] = pessoa->id;
   contadorSequenciaSegura++;
 }
 
@@ -147,7 +149,7 @@ void emprestimoBanco(financiamento *pessoa) {
     }
     pthread_mutex_unlock(&mutexBanco);
 
-    printf("\nValor Total do Imovel: %.2f\nPessoa %d precisa de R$%.2f de especie\ne R$ %.2f de taxa", pessoa->totalImovel, pessoa->id, valorEmprestimoEspecie, valorEmprestimoTaxa);
+    printf("\nValor Total do Imovel: %.2f\nPessoa %d precisa de R$%.2f de especie e R$ %.2f de taxa", pessoa->totalImovel, pessoa->id, valorEmprestimoEspecie, valorEmprestimoTaxa);
   } else {
     printf("Nao foi possivel liberar o emprestimo para a pessoa %d", pessoa->id);
   }
