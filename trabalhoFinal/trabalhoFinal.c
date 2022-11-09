@@ -21,13 +21,17 @@ typedef struct Banco {
 } banco;
 
 banco instFinanceira;
+
 int pessoasAtendidas;
 int *sequenciaSegura;
 int contadorSequenciaSegura = 0;
-pthread_mutex_t mutexBanco = PTHREAD_MUTEX_INITIALIZER;
 
-void pedirFinanciamento();
-void situacaoBanco();
+pthread_mutex_t mutexBanco = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexSequenciaSegura = PTHREAD_MUTEX_INITIALIZER;
+
+void imprimeSequenciaSegura(int boolean);
+void pedirFinanciamento(financiamento *pessoa);
+void situacaoBanco(int boolean);
 void devolverDinheiro(financiamento *pessoa);
 void emprestimoBanco(financiamento *pessoa);
 void verificaPessoasAtendidas();
@@ -35,12 +39,21 @@ void verificaPessoasAtendidas();
 int qtdPessoas;
 
 int main() {
+  system("clear || cls");
+
   srand(time(NULL));
 
   do {
     printf("Informe quantas pessoas querem financiamento: ");
     scanf("%d", &qtdPessoas);
+
+    if (qtdPessoas <= 0) {
+      printf("Informe um valor maior que 0 de pessoas.");
+    }
+
   } while (qtdPessoas < 1);
+
+  sequenciaSegura = (int*) malloc(qtdPessoas * sizeof(int));
 
   financiamento pessoas[qtdPessoas];
 
@@ -48,9 +61,10 @@ int main() {
   instFinanceira.subsidio = (int)((100001 + rand() % 100000));
   instFinanceira.taxas = (int)(30001 + rand() % 30000);
 
-  printf("\nBanco -----\n-> Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", instFinanceira.especie, instFinanceira.taxas, instFinanceira.subsidio);
+  printf("\n\t----- Banco -----\n->Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", instFinanceira.especie, instFinanceira.taxas, instFinanceira.subsidio);
 
   pthread_t financiamentos[qtdPessoas];
+  pthread_t deadlock;
 
   for (int i = 0; i < qtdPessoas; i++) {
     pessoas[i].id = i;
@@ -61,6 +75,7 @@ int main() {
     pessoas[i].taxas = (float)(rand() % (int)pessoas[i].totalImovel);
 
     int subsidio = rand() % 2;
+    
     switch (subsidio) {
     case 0:
       pessoas[i].subsidio = (float)((int)pessoas[i].totalImovel * 0.05);
@@ -78,89 +93,146 @@ int main() {
     printf("\nPessoa %d -----\n->Total do imovel: R$ %.2f\n->Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", pessoas[i].id, pessoas[i].totalImovel, pessoas[i].especie, pessoas[i].taxas, pessoas[i].subsidio);
   }
 
-  for (int i = 0; i < qtdPessoas; i++) {
-    int erro = pthread_create(&financiamentos[i], NULL, (void *)pedirFinanciamento, (void *)&pessoas[i]);
-    if (erro) {
-      printf("ERRO; pthread_create() devolveu o erro %d\n", erro);
-      exit(-1);
+  int countWhile = 0;
+  int boolean = 0;
+
+  while ((contadorSequenciaSegura < qtdPessoas) && (countWhile < qtdPessoas)) {
+    for (int i = 0; i < qtdPessoas; i++) {
+      int erro = pthread_create(&financiamentos[i], NULL, (void *)pedirFinanciamento, (void *)&pessoas[i]);
+      if (erro) {
+        printf("ERRO; pthread_create() devolveu o erro %d\n", erro);
+        exit(-1);
+      }
     }
+
+    for (int i = 0; i < qtdPessoas; i++) {
+      pthread_join(financiamentos[i], NULL);
+    }
+
+    countWhile++;
   }
 
-  for (int i = 0; i < qtdPessoas; i++) {
-    pthread_join(financiamentos[i], NULL);
+  if (contadorSequenciaSegura < qtdPessoas) {
+    printf("\n\n\t----- ESTADO INSEGURO -----\n");
+    imprimeSequenciaSegura(boolean);
+    printf("->Pessoas que nao foram atendidas: %d\n", qtdPessoas - pessoasAtendidas);
+    printf("\n");
+  } else {
+    boolean = 1;
+    printf("\n\n\t----- ESTADO SEGURO -----\n");
+    imprimeSequenciaSegura(boolean);
+    printf("\n");
   }
 
-  imprimeSequenciaSegura();
+  pthread_mutex_destroy(&mutexBanco);
+  pthread_mutex_destroy(&mutexSequenciaSegura);
+
+  free(sequenciaSegura);
 }
 
-void imprimeSequenciaSegura() {
-  printf("\nSequencia segura:\n");
-  for (int i = 0; i < contadorSequenciaSegura; i++) {
-    printf("Pessoa %d", sequenciaSegura[i]);
-    if (i != contadorSequenciaSegura - 1) {
-      printf("-->");
-    }
+void imprimeSequenciaSegura(int boolean) {
+  if (boolean == 1) {
+    printf("\nSequencia segura:\n");
+  } else {
+    printf("\nSequencia insegura\n");
   }
-  printf("\n");
+
+  for (int i = 0; i < contadorSequenciaSegura; i++) {
+      printf("Pessoa %d", sequenciaSegura[i]);
+      if (i != contadorSequenciaSegura - 1) {
+        printf("-->");
+      }
+    }
+    printf("\n");
 }
 
 void pedirFinanciamento(financiamento *pessoa) {
-  emprestimoBanco(pessoa);
-  situacaoBanco();
-  printf("\nPessoa %d esta pagando as parcelas...\n", pessoa->id);
-  sleep(5 + rand() % 5);
-  devolverDinheiro(pessoa);
-  situacaoBanco();
-  pessoasAtendidas++;
-  sequenciaSegura[contadorSequenciaSegura] = pessoa->id;
-  contadorSequenciaSegura++;
+  if (pessoa -> financiado == 0){
+    int boolean;
+
+    printf("\nPessoa %d pedindo financiamento\n", pessoa -> id);
+    
+    emprestimoBanco(pessoa);
+
+    if (pessoa -> financiado == 1){
+      boolean = 1;
+      situacaoBanco(boolean);
+      printf("\nPessoa %d esta pagando as parcelas...\n", pessoa->id);
+      sleep(5 + rand() % 5);
+      devolverDinheiro(pessoa);
+      boolean = 0;
+      situacaoBanco(boolean);
+
+      pessoasAtendidas++;
+
+      pthread_mutex_lock(&mutexSequenciaSegura);
+      sequenciaSegura[contadorSequenciaSegura] = pessoa->id;
+      contadorSequenciaSegura++;
+      pthread_mutex_unlock(&mutexSequenciaSegura);
+    }
+  }
 }
 
-void situacaoBanco() {
-  printf("\nBanco -----\n-> Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", instFinanceira.especie, instFinanceira.taxas, instFinanceira.subsidio);
+void situacaoBanco(int boolean) {
+  if (boolean == 1){
+    pthread_mutex_lock(&mutexBanco);
+    printf("\n\n\t----- Banco [Antes de pagar a parcela] -----\n->Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", instFinanceira.especie, instFinanceira.taxas, instFinanceira.subsidio);
+    pthread_mutex_unlock(&mutexBanco);
+  } else {
+    pthread_mutex_lock(&mutexBanco);
+    printf("\n\t----- Banco [Depois de pagar a parcela] -----\n->Especie: R$ %.2f\n->Taxas: R$ %.2f\n->Subsidio: R$ %.2f\n", instFinanceira.especie, instFinanceira.taxas, instFinanceira.subsidio);
+    pthread_mutex_unlock(&mutexBanco);
+  }
 }
 
 void devolverDinheiro(financiamento *pessoa) {
   pthread_mutex_lock(&mutexBanco);
+
   instFinanceira.especie += pessoa->especie;
   instFinanceira.taxas += pessoa->taxas;
   instFinanceira.subsidio += pessoa->subsidio;
-  pthread_mutex_unlock(&mutexBanco);
-  pessoa->financiado = 1;
+
   printf("Pessoa %d devolveu o dinheiro com sucesso!\n", pessoa->id);
+
+  pthread_mutex_unlock(&mutexBanco);
 }
 
 void emprestimoBanco(financiamento *pessoa) {
+  pthread_mutex_lock(&mutexBanco);
+
   verificaPessoasAtendidas();
+
   float valorEmprestimoEspecie = pessoa->totalImovel - pessoa->especie - pessoa->subsidio;
   float valorTaxa = pessoa->totalImovel * 0.05;
   float valorEmprestimoTaxa = 0;
+
   int consegueLiberar = (instFinanceira.especie >= valorEmprestimoEspecie) && (instFinanceira.subsidio >= pessoa->subsidio) && (instFinanceira.taxas >= valorTaxa - pessoa->taxas);
 
   if (consegueLiberar) {
-    pthread_mutex_lock(&mutexBanco);
     instFinanceira.especie -= valorEmprestimoEspecie;
     instFinanceira.subsidio -= pessoa->subsidio;
     pessoa->especie += valorEmprestimoEspecie;
+
     if (valorTaxa > pessoa->taxas) {
       valorEmprestimoTaxa = valorTaxa - pessoa->taxas;
       instFinanceira.taxas -= valorEmprestimoTaxa;
       pessoa->taxas += valorEmprestimoTaxa;
     }
-    pthread_mutex_unlock(&mutexBanco);
+
+    pessoa->financiado = 1;
 
     printf("\nValor Total do Imovel: %.2f\nPessoa %d precisa de R$%.2f de especie e R$ %.2f de taxa", pessoa->totalImovel, pessoa->id, valorEmprestimoEspecie, valorEmprestimoTaxa);
+    pthread_mutex_unlock(&mutexBanco);
   } else {
     printf("Nao foi possivel liberar o emprestimo para a pessoa %d", pessoa->id);
+    pthread_mutex_unlock(&mutexBanco);
   }
 }
 
 void verificaPessoasAtendidas() {
-  if (pessoasAtendidas >= 5) {
-    printf("Banco atendeu 5 pessoas e recebeu um bônus de 50%% de subsidio");
-    pthread_mutex_lock(&mutexBanco);
+  if (pessoasAtendidas >= 3) {
+    printf("Banco atendeu 3 pessoas e recebeu um bônus de 50%% de subsidio");
     instFinanceira.subsidio += instFinanceira.subsidio * 0.5;
-    pthread_mutex_unlock(&mutexBanco);
     pessoasAtendidas = 0;
   }
 }
